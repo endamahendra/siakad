@@ -1,0 +1,11 @@
+custom model laravel breeze
+config/auth.php
+// config/auth.php
+
+'providers' => [
+    'users' => [
+        'driver' => 'eloquent',
+        'model' => App\CustomUser::class, // Sesuaikan dengan namespace dan nama model Anda
+    ],
+],
+

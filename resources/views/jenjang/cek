@@ -1,0 +1,342 @@
+<!-- resources/views/pengguna/index.blade.php -->
+
+@extends('layouts.app')
+@section('content')
+              <div class="modal fade" id="deleteConfirmationModal" tabindex="-1" data-bs-backdrop="false">
+                <div class="modal-dialog">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">Konfirmasi Penghapusan</h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                     Apakah Anda yakin ingin menghapus pengguna? 
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tidak</button>
+                      <button type="button" class="btn btn-danger" id="confirmDelete">Ya</button>
+                    </div>
+                  </div>
+                </div>
+              </div><!-- End Disabled Backdrop Modal-->
+
+              <!-- Modal untuk Form Pengguna -->
+<div class="modal fade" id="penggunaFormModal" tabindex="-1" role="dialog" aria-labelledby="penggunaFormModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="penggunaFormModalLabel">Form Tambah Data</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form class="row g-3" id="penggunaForm">
+                @csrf
+                 <input type="hidden" id="penggunaId">
+               <div class="col-md-6">
+                <div class="col-md-12">
+                  <input type="text" id="nama" class="form-control" placeholder="Nama...">
+                </div>
+                </div>
+                <div class="col-md-6">
+                <div class="col-md-12">
+                  <input type="email" id="emailInput"  class="form-control" placeholder="Email...">
+                </div>
+                </div>
+                <div class="col-md-6">
+                <div class="col-md-12">
+                  <input type="password" id="password"  class="form-control" placeholder="Password">
+                </div>
+                </div>
+                <div class="col-md-6">
+                <div class="col-md-12">
+                  <select id="bagian" class="form-select">
+                      <option selected>--Pilihan Bagian--</option>
+                      <option value="Akademik">Akademik</option>
+                      <option value="Pengajar">Pengajar</option>
+                      <option value="Mahasiswa">Mahasiswa</option>
+                  </select>
+                </div>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <!-- Tombol Simpan dan tombol lainnya dapat ditempatkan di sini -->
+              <div class="text-center">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                <button type="submit" onclick="savePengguna()" id="simpan" class="btn btn-primary btn-sm">Simpan</button>
+              </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="contentContainerPengguna">
+  <!-- Tabel untuk menampilkan data -->
+          <div class="card">
+            <div class="card-body">             
+                 <h6 class="card-title">Daftar Data Pengguna</h6>
+                 <div style="margin-bottom: 10px;">
+                 <button type="button" class="btn btn-primary" onclick="clearForm(); $('#penggunaFormModal').modal('show');">
+                    <i class="bi-plus-circle me-2"></i>Tambah Data
+                </button>
+                </div>
+<table id="penggunasTable" class="table" style="width:100%">
+    <thead>
+        <tr>
+            <th>No</th>
+            <th>Nama</th>
+            <th>Email</th>
+            <th>Bagian</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Data akan ditambahkan oleh DataTables secara dinamis -->
+    </tbody>
+</table> 
+</div>
+</div>
+
+</div>
+
+
+
+<!-- Skrip Ajax dan DataTables -->
+    
+
+<script>
+    $(document).ready(function () {
+         $.ajaxSetup({
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        }
+    });
+        var table = $('#penggunasTable').DataTable({
+        ajax: {
+            url: '/pengguna/datatables',
+            type: 'GET',
+            dataSrc: 'data' // Sesuaikan dengan nama kunci yang berisi data
+        },
+        columns: [
+            { data: 'id' },
+            { data: 'nama' },
+            { data: 'email' },
+            { data: 'bagian' },
+            {
+                data: null,
+                render: function (data, type, row) {
+                    return '<button class="btn btn-sm btn-warning" onclick="editPengguna(' + data.id + ')">Edit</button> ' +
+                           '<button class="btn btn-sm btn-danger" onclick="deletePengguna(' + data.id + ')">Delete</button>';
+                }
+            }
+        ]
+    });
+});
+
+// Fungsi untuk menambahkan atau mengedit pengguna
+function savePengguna() {
+    var id = $('#penggunaId').val();
+    var method = (id === '') ? 'POST' : 'PUT';
+
+    $.ajax({
+        url: '/pengguna' + (method === 'POST' ? '' : '/' + id),
+        type: method,
+        data: {
+            nama: $('#nama').val(),
+            email: $('#emailInput').val(),
+            password: $('#password').val(),
+            bagian: $('#bagian').val(),
+        },
+        success: function (response) {
+            toastr.success('Data berhasil disimpan', 'Sukses');
+            clearForm();
+            $('#penggunasTable').DataTable().ajax.reload();
+            // Menonaktifkan modal jika menggunakan modal Bootstrap
+            $('#penggunaFormModal').modal('hide');
+        },
+        error: function (error) {
+            toastr.error('Gagal menyimpan data. Periksa kembali input Anda.', 'Error');
+        }
+    });
+}
+
+
+    // Fungsi untuk mengisi formulir dengan data pengguna yang akan diedit
+ // Fungsi untuk mengisi formulir dengan data pengguna yang akan diedit
+function editPengguna(id) {
+    $.ajax({
+        url: '/pengguna/' + id,
+        type: 'GET',
+        success: function (response) {
+            $('#penggunaId').val(response.pengguna.id);
+            $('#nama').val(response.pengguna.nama);
+            $('#emailInput').val(response.pengguna.email);
+            // Jangan mengisi password di sini untuk menghindari tampilan password di formulir
+            // $('#password').val('');
+            $('#bagian').val(response.pengguna.bagian);
+             $('#penggunaFormModalLabel').text('Form Edit Data');
+             $('#simpan').text('Simpan Perubahan');
+
+            // Menampilkan modal formulir setelah data diisi
+            $('#penggunaFormModal').modal('show');
+        },
+        error: function (error) {
+            toastr.error('Gagal mengambil data pengguna.', 'Error');
+        }
+    });
+}
+
+
+    // Fungsi untuk menghapus pengguna
+function deletePengguna(id) {
+    // Menampilkan konfirmasi penghapusan menggunakan modal Bootstrap
+    $('#deleteConfirmationModal').modal('show');
+
+    // Mengonfigurasi aksi yang akan diambil jika pengguna menekan "Ya"
+    $('#confirmDelete').on('click', function () {
+        $.ajax({
+            url: '/pengguna/' + id,
+            type: 'DELETE',
+            success: function (response) {
+                toastr.success('Data berhasil dihapus', 'Sukses');
+                $('#penggunasTable').DataTable().ajax.reload();
+            },
+            error: function (xhr, status, error) {
+                if (xhr.status == 404) {
+                    // ID tidak ditemukan di database
+                    toastr.warning('Data dengan ID tersebut tidak ditemukan.', 'Peringatan');
+                } else {
+                    // Kesalahan lain
+                    toastr.error('Gagal menghapus data pengguna.', 'Error');
+                }
+            }
+        });
+
+        // Menutup modal setelah pengguna menekan "Ya"
+        $('#deleteConfirmationModal').modal('hide');
+    });
+}
+
+
+
+
+    // Fungsi untuk membersihkan formulir
+    function clearForm() { 
+        $('#penggunaId').val('');
+        $('#nama').val('');
+        $('#emailInput').val('');
+        $('#password').val('');
+        $('#bagian').val('Akademik');
+    }
+</script>
+
+@endsection
+<?php
+
+// app/Http/Controllers/PenggunaController.php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\Pengguna;
+use Validator;
+use DataTables;
+
+class PenggunaController extends Controller
+{
+    public function index()
+    {
+        return view('beranda.list');
+    }
+
+   public function getDataTable()
+{
+    $penggunas = Pengguna::all();
+
+    return DataTables::of($penggunas)
+        ->addColumn('action', function ($pengguna) {
+            return '<button class="btn btn-sm btn-warning" onclick="editPengguna(' . $pengguna->id . ')">Edit</button>' .
+                   '<button class="btn btn-sm btn-danger" onclick="deletePengguna(' . $pengguna->id . ')">Delete</button>';
+        })
+        ->make(true);
+}
+
+
+    public function store(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'nama' => 'required',
+            'email' => 'required|email|unique:penggunas',
+            'password' => 'required|min:6',
+            'bagian' => 'required|in:Akademik,Pengajar,Mahasiswa',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()], 400);
+        }
+
+        $pengguna = Pengguna::create([
+            'nama' => $request->input('nama'),
+            'email' => $request->input('email'),
+            'password' => bcrypt($request->input('password')),
+            'bagian' => $request->input('bagian'),
+        ]);
+
+        return response()->json(['pengguna' => $pengguna]);
+    }
+
+   // app/Http/Controllers/PenggunaController.php
+
+public function update(Request $request, $id)
+{
+    $validator = Validator::make($request->all(), [
+        'nama' => 'required',
+        'email' => 'required|email|unique:penggunas,email,' . $id,
+        'password' => 'nullable|min:6', // Mengizinkan password kosong
+        'bagian' => 'required|in:Akademik,Pengajar,Mahasiswa',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json(['error' => $validator->errors()], 400);
+    }
+
+    $pengguna = Pengguna::find($id);
+    $pengguna->nama = $request->input('nama');
+    $pengguna->email = $request->input('email');
+
+    // Periksa apakah password diisi atau tidak
+    if ($request->filled('password')) {
+        // Jika password diisi, update password
+        $pengguna->password = bcrypt($request->input('password'));
+    }
+
+    $pengguna->bagian = $request->input('bagian');
+    $pengguna->save();
+
+    return response()->json(['pengguna' => $pengguna]);
+}
+
+
+    public function destroy($id)
+    {
+        Pengguna::destroy($id);
+
+        return response()->json([], 204);
+    }
+
+
+    // app/Http/Controllers/PenggunaController.php
+
+public function show($id)
+{
+    $pengguna = Pengguna::find($id);
+
+    if (!$pengguna) {
+        return view ('errors.404');
+    }
+
+    return response()->json(['pengguna' => $pengguna]);
+}
+
+}
